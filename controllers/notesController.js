@@ -1,9 +1,12 @@
 const Note = require("../models/NoteModel");
 const User = require("../models/UserModel");
 
-
 const getAllNotes = async (req, res) => {
-    const { userId } = req.body
+    const cookies = req.cookies
+
+    if (!cookies?.userId) return res.status(401).json({ message: 'Unauthorized' })
+
+    const userId = cookies.userId
 
     const notes = await Note.find({ user: userId }).lean()
 
@@ -14,6 +17,21 @@ const getAllNotes = async (req, res) => {
     res.status(200).json(notes)
 }
 
+const getAllArchivedNotes = async (req, res) => {
+    const cookies = req.cookies
+
+    if (!cookies?.userId) return res.status(401).json({ message: 'Unauthorized' })
+
+    const userId = cookies.userId
+
+    const notes = await Note.find({ user: userId, isArchived: true }).lean()
+
+    if (!notes?.length) {
+        return res.status(400).json({ message: "No notes found" })
+    }
+
+    res.status(200).json(notes)
+}
 
 const createNewNote = async (req, res) => {
     const { userId, title, tags, content } = req.body
@@ -118,6 +136,7 @@ const deleteNote = async (req, res) => {
 
 module.exports = {
     getAllNotes,
+    getAllArchivedNotes,
     createNewNote,
     updateNote,
     deleteNote,

@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer'
+const nodemailer = require('nodemailer')
 // import 'setimmediate';
 
 const transporter = nodemailer.createTransport({
@@ -11,14 +11,14 @@ const transporter = nodemailer.createTransport({
   },
 })
 
-export function sendEmail(email: string, subject: string, message: string) {
+const sendEmail = (email, subject, message) => {
   const htmlBody = "<h1> Welcome " + "<strong>" + email + "</strong>" + " to Notes</h1>" +
     "<p>" + message + "</p>"
 
   const mailData = {
     from: `Notes <${process.env.USER_EMAIL}>`,
     // to: 'austin.tech.space@gmail.com',
-    to: process.env.USER_EMAIL,
+    to: email,
     replyTo: email,
     subject: subject,
     html: htmlBody
@@ -36,3 +36,5 @@ export function sendEmail(email: string, subject: string, message: string) {
     })
   })
 }
+
+module.exports = { sendEmail }

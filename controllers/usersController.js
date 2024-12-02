@@ -1,5 +1,6 @@
 const User = require("../models/UserModel")
 const Note = require("../models/NoteModel")
+const sendEmail = require("../config/emailConfig")
 const bcrypt = require("bcrypt")
 
 const createNewUser = async (req, res) => {
@@ -26,6 +27,7 @@ const createNewUser = async (req, res) => {
     const user = await User.create(userObject)
 
     // Send the user a welcome email
+    // sendEmail(email, "Congratulations! Your account has been created successfully!", "We're are glad to have you join us on Notes - your number one note taking app. Thank you for signing up.")
 
     if (user) {
         return res.status(201).json({ message: `New user ${email} created`})
