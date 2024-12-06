@@ -1,12 +1,9 @@
 const Note = require("../models/NoteModel");
-const User = require("../models/UserModel");
 
 const getAllNotes = async (req, res) => {
-    const cookies = req.cookies
+    const { userId } = req.body
 
-    if (!cookies?.userId) return res.status(401).json({ message: 'Unauthorized' })
-
-    const userId = cookies.userId
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' })
 
     const notes = await Note.find({ user: userId }).lean()
 
@@ -18,11 +15,9 @@ const getAllNotes = async (req, res) => {
 }
 
 const getAllArchivedNotes = async (req, res) => {
-    const cookies = req.cookies
+    const { userId } = req.body
 
-    if (!cookies?.userId) return res.status(401).json({ message: 'Unauthorized' })
-
-    const userId = cookies.userId
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' })
 
     const notes = await Note.find({ user: userId, isArchived: true }).lean()
 
@@ -49,7 +44,7 @@ const createNewNote = async (req, res) => {
     }
 
     // Create and store the new user
-    const note = await Note.create({ userId, title, tags, content })
+    const note = await Note.create({ user: userId, title, tags, content })
 
     if (note) {
         return res.status(201).json({ message: "New note created" })
@@ -95,7 +90,6 @@ const updateNote = async (req, res) => {
 const markNoteAsArchived = async (req, res) => {
     const { id } = req.body
     
-    // Confirm data
     if (!id) {
         return res.status(400).json({ message: "Note ID required" })
     }
@@ -111,6 +105,27 @@ const markNoteAsArchived = async (req, res) => {
     const updatedNote = await note.save()
 
     res.json(`'${updatedNote.title}' archived!`)
+}
+
+const restoreArchivedNote = async (req, res) => {
+    const { id } = req.body
+    
+    // Confirm data
+    if (!id) {
+        return res.status(400).json({ message: "Note ID required" })
+    }
+
+    const note = await Note.findById(id).exec()
+
+    if (!note) {
+        return res.status(400).json({ message: "Note not found" })
+    }
+
+    note.isArchived = false
+
+    const updatedNote = await note.save()
+
+    res.json(`'${updatedNote.title}' restored!`)
 }
 
 
@@ -139,6 +154,7 @@ module.exports = {
     getAllArchivedNotes,
     createNewNote,
     updateNote,
-    deleteNote,
-    markNoteAsArchived
+    markNoteAsArchived,
+    restoreArchivedNote,
+    deleteNote
 }
