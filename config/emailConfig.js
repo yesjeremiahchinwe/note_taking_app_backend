@@ -17,7 +17,6 @@ const sendEmail = (email, subject, message) => {
 
   const mailData = {
     from: `Notes <${process.env.USER_EMAIL}>`,
-    // to: 'austin.tech.space@gmail.com',
     to: email,
     replyTo: email,
     subject: subject,

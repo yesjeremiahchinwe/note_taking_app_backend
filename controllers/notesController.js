@@ -5,7 +5,7 @@ const getAllNotes = async (req, res) => {
 
     if (!userId) return res.status(401).json({ message: 'Unauthorized' })
 
-    const notes = await Note.find({ user: userId }).lean()
+    const notes = await Note.find({ user: userId, isArchived: false }).lean()
 
     if (!notes?.length) {
         return res.status(400).json({ message: "No notes found" })

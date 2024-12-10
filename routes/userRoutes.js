@@ -3,12 +3,12 @@ const router = express.Router()
 const usersController = require("../controllers/usersController")
 const verifyJWT = require("../middleware/verifyJWT")
 
-router.route("/users")
+router.route("/")
     .post(usersController.createNewUser)
 
 router.use(verifyJWT)
 
-router.route("/users")
+router.route("/change-password")
     .patch(usersController.updateUserPassword)
 
 module.exports = router

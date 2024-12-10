@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const sendEmail = require("../config/emailConfig")
+const User = require("../models/UserModel")
 
 // @desc Login
 // @route POST /auth

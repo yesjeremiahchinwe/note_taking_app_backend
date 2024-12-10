@@ -1,5 +1,4 @@
 const User = require("../models/UserModel")
-const Note = require("../models/NoteModel")
 const sendEmail = require("../config/emailConfig")
 const bcrypt = require("bcrypt")
 
@@ -27,7 +26,7 @@ const createNewUser = async (req, res) => {
     const user = await User.create(userObject)
 
     // Send the user a welcome email
-    // sendEmail(email, "Congratulations! Your account has been created successfully!", "We're are glad to have you join us on Notes - your number one note taking app. Thank you for signing up.")
+    sendEmail(email, "Congratulations! Your account has been created successfully!", "We're are glad to have you join us on Notes - your number one note taking app. Thank you for signing up.")
 
     if (user) {
         return res.status(201).json({ message: `New user ${email} created`})
@@ -38,15 +37,15 @@ const createNewUser = async (req, res) => {
 
 
 const updateUserPassword = async (req, res) => {
-    const { id, oldPassword, newPassword, confirmNewPasword } = req.body
+    const { userId, oldPassword, newPassword, confirmNewPasword } = req.body
 
     // Confirm data
-    if (!id || !oldPassword || !newPassword || !confirmNewPasword) {
+    if (!userId || !oldPassword || !newPassword || !confirmNewPasword) {
         return res.status(400).json({ message: "All fields are required"})
     }
 
     // Does the user exist to update?
-    const user = await User.findById(id).exec()
+    const user = await User.findById(userId).exec()
 
     if (!user) {
         return res.status(400).json({ message: "User not found!" })
@@ -66,7 +65,6 @@ const updateUserPassword = async (req, res) => {
 
     res.json({message: `Password for ${updatedUser.email} updated successfully!`})
 }
-
 
 module.exports = {
     createNewUser,
