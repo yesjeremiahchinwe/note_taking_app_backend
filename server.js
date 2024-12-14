@@ -32,7 +32,7 @@ app.use(errorHandler)
 mongoose.connection.once("open", () => {
     console.log("Connected to mongodb...")
     app.listen(PORT, () => {
-        console.log(`Listening on port ${PORT}`)
+        console.log(`Listening on port ${PORT}...`)
     })
 })
 

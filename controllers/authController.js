@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-const sendEmail = require("../config/emailConfig")
+const { sendEmail } = require("../config/emailConfig")
 const User = require("../models/UserModel")
 
 // @desc Login
@@ -101,7 +101,7 @@ const forgotPassword = async (req, res) => {
         return res.status(401).json({ message: 'Invalid Credentials' })
     }
 
-    sendEmail(email, "Reset Password", `Hello ${foundUser.email}! Kindly click the link below to reset your password <a href="${process.env.FRONTEND_URL}/${foundUser._id}/reset-password"></a>`)
+    sendEmail(email, "Reset Your Password", `Hello ${foundUser.email}! Kindly click the link below to reset your password <a href="${process.env.FRONTEND_URL}/${foundUser._id}/reset-password"></a>`)
 }
 
 // @desc ResetPassword
@@ -127,7 +127,7 @@ const resetPassword = async (req, res) => {
 
      sendEmail(updatedUser.email, "Password Reset Successful!", `Hi ${updatedUser.email}! You recently reset your password for the account ${updatedUser.email}. Please if you're not the one, we suggest you change your password on the settings page.`)
  
-     res.json({message: `Passord reset for ${updatedUser.email} successful!`})
+     res.json({message: `Password reset for ${updatedUser.email} successful!`})
 }
 
 // @desc Logout
