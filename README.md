@@ -1,4 +1,4 @@
-# REST API for Note-taking Application with Role-based Access
+# Note Taking App (Backend REST API) built with Node.js
 
 ## The REST API was built With
 
@@ -11,12 +11,15 @@
 
 ## Features
 
-- Role-based Access
-- Creating, Editing, and assigning notes to different users
-- Registering new users
-- Viewing list of notes and their various owners
-- Deleting a note or a user, etc.
-
+- REST API with the standard CRUD Operations - User can Create, Read, Update, and Delete notes
+- User can archive and restore a note
+- User can view all archived notes
+- User can view all with a specific tag - filtering notes by tag
+- User can search for notes by note title, tags, and content.
+- User can choose/change his color & font theme
+- User can create a new account and login into his account
+- User can update his password
+- User can reset his password through the forgot password feature
 
 ## Author
 

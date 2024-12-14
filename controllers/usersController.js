@@ -37,10 +37,10 @@ const createNewUser = async (req, res) => {
 
 
 const updateUserPassword = async (req, res) => {
-    const { userId, oldPassword, newPassword, confirmNewPasword } = req.body
+    const { userId, oldPassword, newPassword, confirmNewPassword } = req.body
 
     // Confirm data
-    if (!userId || !oldPassword || !newPassword || !confirmNewPasword) {
+    if (!userId || !oldPassword || !newPassword || !confirmNewPassword) {
         return res.status(400).json({ message: "All fields are required"})
     }
 
@@ -55,7 +55,7 @@ const updateUserPassword = async (req, res) => {
 
     if (!match) return res.status(401).json({ message: 'Invalid Credentials' })
 
-    if (newPassword !== confirmNewPasword) {
+    if (newPassword !== confirmNewPassword) {
         return res.status(401).json({ message: 'Passwords do not match' })
     }
 
@@ -63,7 +63,7 @@ const updateUserPassword = async (req, res) => {
 
     const updatedUser = await user.save()
 
-    res.json({message: `Password for ${updatedUser.email} updated successfully!`})
+    res.json({message: `Password for account ${updatedUser.email} updated successfully!`})
 }
 
 module.exports = {
