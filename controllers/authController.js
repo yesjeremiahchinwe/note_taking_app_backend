@@ -31,13 +31,13 @@ const login = async (req, res) => {
             }
         },
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: '24h' }
+        { expiresIn: '180d' }
     )
 
     const refreshToken = jwt.sign(
         { "email": foundUser.email },
         process.env.REFRESH_TOKEN_SECRET,
-        { expiresIn: '14d' }
+        { expiresIn: '356d' }
     )
 
     // Create secure cookie with refresh token 
@@ -45,7 +45,7 @@ const login = async (req, res) => {
         httpOnly: true, //accessible only by web server 
         secure: true, //https
         sameSite: 'None', //cross-site cookie 
-        maxAge: 14 * 24 * 60 * 60 * 1000 //cookie expiry: set to match rT
+        maxAge: 365 * 24 * 60 * 60 * 1000 //cookie expiry: set to match rT
         // maxAge: 1200 * 1000 //cookie expiry: set to match rT
     })
 
@@ -81,7 +81,7 @@ const refresh = (req, res) => {
                     }
                 },
                 process.env.ACCESS_TOKEN_SECRET,
-                { expiresIn: '24h' }
+                { expiresIn: '180d' }
             )
 
             res.json({ accessToken })
