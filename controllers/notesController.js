@@ -8,7 +8,7 @@ const getAllNotes = async (req, res) => {
     const notes = await Note.find({ user: userId, isArchived: false }).lean()
 
     if (!notes?.length) {
-        return res.status(400).json({ message: "No notes found" })
+        return res.status(204).json([])
     }
 
     res.status(200).json(notes)
@@ -22,7 +22,7 @@ const getAllArchivedNotes = async (req, res) => {
     const notes = await Note.find({ user: userId, isArchived: true }).lean()
 
     if (!notes?.length) {
-        return res.status(400).json({ message: "No notes found" })
+        return res.status(204).json([])
     }
 
     res.status(200).json(notes)
