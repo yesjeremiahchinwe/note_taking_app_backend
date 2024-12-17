@@ -12,10 +12,10 @@ router.route('/refresh')
 router.route('/logout')
     .post(authController.logout)
 
-router.route('/forgot-password')
+router.route('/forgot')
     .post(authController.forgotPassword)
 
-router.route('/reset-password')
+router.route('/reset')
     .patch(authController.resetPassword)
 
 module.exports = router
