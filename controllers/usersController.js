@@ -32,8 +32,8 @@ const createNewUser = async (req, res) => {
   const accessToken = jwt.sign(
     {
       UserInfo: {
-        email: foundUser.email,
-        userId: foundUser._id,
+        email: user.email,
+        userId: user._id,
       },
     },
     process.env.ACCESS_TOKEN_SECRET,
@@ -41,7 +41,7 @@ const createNewUser = async (req, res) => {
   );
 
   const refreshToken = jwt.sign(
-    { email: foundUser.email },
+    { email: user.email },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: "356d" }
   );
