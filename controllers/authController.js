@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-// const { sendEmail } = require("../config/emailConfig")
+const { sendEmail } = require("../config/emailConfig")
 const User = require("../models/UserModel")
 
 // @desc Login
@@ -31,7 +31,7 @@ const login = async (req, res) => {
             }
         },
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: '180d' }
+        { expiresIn: '240d' }
     )
 
     const refreshToken = jwt.sign(
@@ -44,7 +44,7 @@ const login = async (req, res) => {
     res.cookie('jwt', refreshToken, {
         httpOnly: true, //accessible only by web server 
         secure: true, //https
-        sameSite: 'None', //cross-site cookie 
+        sameSite: 'Lax', //cross-site cookie 
         maxAge: 365 * 24 * 60 * 60 * 1000 //cookie expiry: set to match rT
         // maxAge: 1200 * 1000 //cookie expiry: set to match rT
     })
@@ -81,7 +81,7 @@ const refresh = (req, res) => {
                     }
                 },
                 process.env.ACCESS_TOKEN_SECRET,
-                { expiresIn: '180d' }
+                { expiresIn: '240d' }
             )
 
             res.json({ accessToken })
@@ -101,7 +101,7 @@ const forgotPassword = async (req, res) => {
         return res.status(401).json({ message: 'Invalid Credentials' })
     }
 
-    // sendEmail(email, "Reset Your Password", `Hello ${foundUser.email}! Kindly click the link below to reset your password <a href="${process.env.FRONTEND_URL}/${foundUser._id}/reset-password"></a>`)
+    sendEmail(email, "Reset Your Password", `Hello ${foundUser.email}! Kindly click the link below to reset your password <a href="${process.env.FRONTEND_URL}/${foundUser._id}/reset-password"></a>`)
 }
 
 // @desc ResetPassword
@@ -125,7 +125,7 @@ const resetPassword = async (req, res) => {
 
      const updatedUser = await foundUser.save()
 
-    //  sendEmail(updatedUser.email, "Password Reset Successful!", `Hi ${updatedUser.email}! You recently reset your password for the account ${updatedUser.email}. Please if you're not the one, we suggest you change your password on the settings page.`)
+     sendEmail(updatedUser.email, "Password Reset Successful!", `Hi ${updatedUser.email}! You recently reset your password for the account ${updatedUser.email}. Please if you're not the one, we suggest you change your password on the settings page.`)
  
      res.json({message: `Password reset for ${updatedUser.email} successful!`})
 }
@@ -136,7 +136,7 @@ const resetPassword = async (req, res) => {
 const logout = (req, res) => {
     const cookies = req.cookies
     if (!cookies?.jwt) return res.sendStatus(204) //No content
-    res.clearCookie('jwt', { httpOnly: true, sameSite: 'None', secure: true })
+    res.clearCookie('jwt', { httpOnly: true, sameSite: 'Lax', secure: true })
     res.json({ message: 'Logged out successfully!' })
 }
 
