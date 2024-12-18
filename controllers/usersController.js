@@ -32,7 +32,7 @@ const createNewUser = async (req, res) => {
   const accessToken = jwt.sign(
     {
       UserInfo: {
-        email: email,
+        email: user?.email,
         userId: user?._id,
       },
     },
@@ -41,7 +41,7 @@ const createNewUser = async (req, res) => {
   );
 
   const refreshToken = jwt.sign(
-    { email },
+    { email: user?.email },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: "356d" }
   );
@@ -54,21 +54,19 @@ const createNewUser = async (req, res) => {
     maxAge: 365 * 24 * 60 * 60 * 1000, //cookie expiry: set to match rT
   });
 
-  res.json({ accessToken, message: `New user ${email} created` });
-
-  // if (user) {
+  if (user) {
     // Send the user a welcome email
-    // sendEmail(
-    //   email,
-    //   "Congratulations! Your account has been created successfully!",
-    //   "We're glad to have you join us on Notes - your number one note taking app. Thank you for signing up."
-    // );
+    sendEmail(
+      email,
+      "Congratulations! Your account has been created successfully!",
+      "We're glad to have you join us on Notes - your number one note taking app. Thank you for signing up."
+    );
 
     // Send accessToken containing username and roles
-  //   return res.json({ accessToken, message: `New user ${email} created` });
-  // } else {
-  //   return res.status(400).json({ message: "Invalid user data received" });
-  // }
+    return res.json({ accessToken, message: `New user ${email} created` });
+  } else {
+    return res.status(400).json({ message: "Invalid user data received" });
+  }
 };
 
 const updateUserPassword = async (req, res) => {
