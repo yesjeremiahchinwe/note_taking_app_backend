@@ -1,7 +1,8 @@
 const Note = require("../models/NoteModel");
+const mongoose = require("mongoose")
 
 const getAllNotes = async (req, res) => {
-    const { userId } = req.body
+    const { userId } = req.params
 
     if (!userId) return res.status(401).json({ message: 'Unauthorized' })
 
@@ -15,7 +16,7 @@ const getAllNotes = async (req, res) => {
 }
 
 const getAllArchivedNotes = async (req, res) => {
-    const { userId } = req.body
+    const { userId } = req.params
 
     if (!userId) return res.status(401).json({ message: 'Unauthorized' })
 

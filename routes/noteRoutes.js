@@ -5,14 +5,16 @@ const verifyJWT = require("../middleware/verifyJWT")
 
 router.use(verifyJWT)
 
-router.route("/")
+router.route("/:userId")
     .get(notesController.getAllNotes)
+
+router.route("/")
     .post(notesController.createNewNote)
     .put(notesController.updateNote)
     .patch(notesController.markNoteAsArchived)
     .delete(notesController.deleteNote)
 
-router.route("/archived")
+router.route("/archived/:userId")
     .get(notesController.getAllArchivedNotes)
 
 router.route("/restore")

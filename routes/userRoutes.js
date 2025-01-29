@@ -3,9 +3,6 @@ const router = express.Router()
 const usersController = require("../controllers/usersController")
 const verifyJWT = require("../middleware/verifyJWT")
 
-router.route("/")
-    .post(usersController.createNewUser)
-
 router.use(verifyJWT)
 
 router.route("/change-password")
