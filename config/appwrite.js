@@ -1,10 +1,14 @@
 const nodeappwrite = require("node-appwrite");
 const { Client, Account } = nodeappwrite;
 
-async function createSessionClient() {
+async function createSessionClient(req, res) {
   const client = new Client()
     .setEndpoint(process.env.APPWRITE_HOST_NAME)
-    .setProject(process.env.APPWRITE_PROJECT_ID)
+    .setProject(process.env.APPWRITE_PROJECT_ID);
+
+  if (req.cookies["appwrite-session"]) {
+    client.setSession(req.cookies["appwrite-session"]);
+  }
 
   return {
     get account() {

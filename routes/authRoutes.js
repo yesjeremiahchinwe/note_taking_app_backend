@@ -9,6 +9,14 @@ router.route("/register")
 router.route('/login')
     .post(loginLimiter, authController.login)
 
+// Frontend starts Google login here
+router.route('/google')
+    .get(authController.googleAuth)
+
+// Google redirects back here after login
+router.route('/google/callback')
+    .get(authController.googleCallback)
+
 router.route('/logout')
     .post(authController.logout)
 

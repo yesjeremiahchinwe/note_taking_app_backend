@@ -3,9 +3,11 @@ const nodeappwrite = require("node-appwrite");
 const User = require("../models/UserModel");
 const {
   createAdminClient,
-  createSessionClient
+  createSessionClient,
 } = require("../config/appwrite");
 const { ID } = nodeappwrite;
+
+const OAuthProvider = require("appwrite").OAuthProvider;
 
 // @desc Login
 // @route POST /auth
@@ -104,6 +106,85 @@ const createNewUser = async (req, res) => {
   }
 };
 
+// @route GET /auth/google
+// @access Public
+const googleAuth = async (req, res) => {
+  try {
+    const { account } = await createAdminClient();
+
+    // Create OAuth token
+    // const token = await account.createOAuth2Token({
+    //   provider: nodeappwrite.OAuthProvider.Google,
+    //   success: "http://localhost:3500/auth/google/callback",
+    //   failure: "http://localhost:5173/login?error=google_failed",
+    // });
+
+    const token = await account.createOAuth2Token({
+      provider: OAuthProvider.Google,
+      success: "https://note-taking-app-backend-silq.onrender.com/auth/google/callback",
+      failure: "https://note-taking-app-backend-silq.onrender.com/auth/google/failure",
+    });
+    return res.redirect(token.url);
+  } catch (err) {
+    console.log("GOOGLE AUTH ERROR:", err);
+    return res
+      .status(500)
+      .json({ message: err?.message || "Google auth init failed" });
+  }
+};
+
+// @route GET /auth/google/callback
+// @access Public
+const googleCallback = async (req, res) => {
+  try {
+    const { account } = await createSessionClient(req, res);
+
+    // Get Appwrite user info
+    const appwriteUser = await account.get();
+
+    const email = appwriteUser.email;
+    const appwriteId = appwriteUser.$id;
+
+    // Check if Mongo user exists
+    let user = await User.findOne({ email }).exec();
+
+    if (!user) {
+      // Create a new DB user if not found
+      user = await User.create({
+        email,
+        password: null, // Google login has no password
+        userId: appwriteId,
+      });
+    } else {
+      // Ensure Appwrite ID is linked
+      user.userId = appwriteId;
+      await user.save();
+    }
+
+    // Retrieve the session (Appwrite just created it)
+    const sessions = await account.listSessions();
+    const session = sessions.sessions[0];
+
+    // Set your cookie
+    res.cookie("appwrite-session", session.secret, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "strict",
+      maxAge: 86400000,
+      // secure: true,
+    });
+
+    return res.redirect(
+      `http://${process.env.FRONTEND_URL}/?token=${session.secret}&id=${user._id}`
+    );
+  } catch (err) {
+    console.log(err);
+    return res.redirect(
+      `http://${process.env.FRONTEND_URL}/login?error=session_failed`
+    );
+  }
+};
+
 // @desc Forgot Password
 // @route GET /auth/forgot-password
 // @access Public
@@ -160,6 +241,8 @@ const logout = async (req, res) => {
 module.exports = {
   createNewUser,
   login,
+  googleAuth,
+  googleCallback,
   logout,
   forgotPassword,
   resetPassword,
