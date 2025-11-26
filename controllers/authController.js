@@ -5,9 +5,7 @@ const {
   createAdminClient,
   createSessionClient,
 } = require("../config/appwrite");
-const { ID } = nodeappwrite;
-
-const OAuthProvider = require("appwrite").OAuthProvider;
+const { ID, OAuthProvider } = nodeappwrite;
 
 // @desc Login
 // @route POST /auth
@@ -106,27 +104,24 @@ const createNewUser = async (req, res) => {
   }
 };
 
+const googleAuthFailed = async (req, res) => {
+  return res.redirect(`${process.env.FRONTEND_URL}/login?error=session_failed`)
+};
+
 // @route GET /auth/google
 // @access Public
 const googleAuth = async (req, res) => {
   try {
     const { account } = await createAdminClient();
 
-    // Create OAuth token
-    // const token = await account.createOAuth2Token({
-    //   provider: nodeappwrite.OAuthProvider.Google,
-    //   success: "http://localhost:3500/auth/google/callback",
-    //   failure: "http://localhost:5173/login?error=google_failed",
-    // });
+    const redirectUrl = await account.createOAuth2Token(
+      OAuthProvider.Google,
+      `${process.env.BACKEND_URL}/auth/google/callback`,
+      `${process.env.BACKEND_URL}/auth/failed?error=google_failed`
+    );
 
-    const token = await account.createOAuth2Token({
-      provider: OAuthProvider.Google,
-      success: "https://note-taking-app-backend-silq.onrender.com/auth/google/callback",
-      failure: "https://note-taking-app-backend-silq.onrender.com/auth/google/failure",
-    });
-    return res.redirect(token.url);
+    return res.redirect(redirectUrl);
   } catch (err) {
-    console.log("GOOGLE AUTH ERROR:", err);
     return res
       .status(500)
       .json({ message: err?.message || "Google auth init failed" });
@@ -137,12 +132,21 @@ const googleAuth = async (req, res) => {
 // @access Public
 const googleCallback = async (req, res) => {
   try {
-    const { account } = await createSessionClient(req, res);
+    const { userId, secret } = req.query;
+
+    const { account } = await createAdminClient(req, res);
+
+    const session = await account.createSession(userId, secret);
+
+    req.cookies["appwrite-session"] = session.secret;
 
     // Get Appwrite user info
-    const appwriteUser = await account.get();
+    const { account: userSessionAccount } = await createSessionClient(req, res);
+
+    const appwriteUser = await userSessionAccount.get();
 
     const email = appwriteUser.email;
+
     const appwriteId = appwriteUser.$id;
 
     // Check if Mongo user exists
@@ -161,11 +165,6 @@ const googleCallback = async (req, res) => {
       await user.save();
     }
 
-    // Retrieve the session (Appwrite just created it)
-    const sessions = await account.listSessions();
-    const session = sessions.sessions[0];
-
-    // Set your cookie
     res.cookie("appwrite-session", session.secret, {
       path: "/",
       httpOnly: true,
@@ -175,12 +174,11 @@ const googleCallback = async (req, res) => {
     });
 
     return res.redirect(
-      `http://${process.env.FRONTEND_URL}/?token=${session.secret}&id=${user._id}`
+      `${process.env.FRONTEND_URL}/success?accessToken=${session.secret}&id=${user._id}`
     );
   } catch (err) {
-    console.log(err);
     return res.redirect(
-      `http://${process.env.FRONTEND_URL}/login?error=session_failed`
+      `${process.env.FRONTEND_URL}/login?error=session_failed`
     );
   }
 };
@@ -243,6 +241,7 @@ module.exports = {
   login,
   googleAuth,
   googleCallback,
+  googleAuthFailed,
   logout,
   forgotPassword,
   resetPassword,

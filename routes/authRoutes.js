@@ -17,6 +17,10 @@ router.route('/google')
 router.route('/google/callback')
     .get(authController.googleCallback)
 
+// Google redirects back to login on failure
+router.route('/failed')
+    .get(authController.googleAuthFailed)
+
 router.route('/logout')
     .post(authController.logout)
 
