@@ -9,6 +9,9 @@ router.route("/register")
 router.route('/login')
     .post(loginLimiter, authController.login)
 
+router.route('/refresh-token')
+    .post(loginLimiter, authController.refreshToken)
+
 // Frontend starts Google login here
 router.route('/google')
     .get(authController.googleAuth)
@@ -29,11 +32,5 @@ router.route('/forgot')
 
 router.route('/reset')
     .patch(authController.resetPassword)
-
-// router.route('/google')
-//     .get(authController.googleRedirect)
-
-// router.route('/callback')
-//     .get(authController.callbackGoogle)
 
 module.exports = router

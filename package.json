@@ -15,7 +15,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "appwrite": "^21.4.0",
+    "axios": "^1.13.2",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.6",
     "cookies": "^0.9.1",
@@ -25,10 +25,10 @@
     "express": "^4.18.2",
     "express-async-errors": "^3.1.1",
     "express-rate-limit": "^7.1.5",
-    "googleapis": "^166.0.0",
+    "google-auth-library": "^10.5.0",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.1.0",
     "mongoose-sequence": "^6.0.0",
-    "node-appwrite": "^14.2.0",
     "nodemailer": "^6.9.16",
     "uuid": "^9.0.1"
   },

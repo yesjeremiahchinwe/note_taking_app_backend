@@ -41,7 +41,7 @@ const createNewNote = async (req, res) => {
     const duplicate = await Note.findOne({ title }).collation({ locale: "en", strength: 2}).lean().exec()
 
     if (duplicate) {
-        return res.status(409).json({ message: "Duplicate note title" })
+        return res.status(409).json({ message: "Note title already exist" })
     }
 
     // Create and store the new user
