@@ -1,23 +1,30 @@
-const mongoose = require('mongoose')
+const { Avatars } = require("appwrite");
+const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema(
+  {
     email: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    userId: {
-        type: String,
-        required: true,
-        unique: true
+      type: String,
+      required: true,
+      unique: true,
     },
     password: {
-        type: String,
+      type: String,
+      default: null,
     },
-    authType: {
-        type: String,
-        default: 'email/password'
-    }
-})
+    googleId: {
+      type: String,
+      default: null,
+    },
+    username: {
+      type: String,
+    },
+    avatar: {
+      type: String,
+    },
+    refreshToken: { type: String },
+  },
+  { timestamps: true }
+);
 
-module.exports = mongoose.model('User', userSchema)
+module.exports = mongoose.model("User", userSchema);

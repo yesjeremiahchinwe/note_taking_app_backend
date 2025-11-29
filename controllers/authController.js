@@ -1,124 +1,119 @@
 const bcrypt = require("bcrypt");
-const nodeappwrite = require("node-appwrite");
 const User = require("../models/UserModel");
+const { OAuth2Client } = require("google-auth-library");
+const jwt = require("jsonwebtoken");
 const {
-  createAdminClient,
-  createSessionClient,
-} = require("../config/appwrite");
-const { ID, OAuthProvider } = nodeappwrite;
+  generateAccessToken,
+  generateRefreshToken,
+} = require("../utilities/tokenGenerators");
 
 // @desc Login
 // @route POST /auth
 // @access Public
 const login = async (req, res) => {
-  const { account } = await createAdminClient(req, res);
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-
-  const foundUser = await User.findOne({ email }).exec();
-  if (!foundUser) {
-    return res.status(401).json({ message: "Invalid Credentials" });
-  }
-
-  const match = await bcrypt.compare(password, foundUser.password);
-  if (!match) return res.status(401).json({ message: "Invalid Credentials" });
-
-  // Create a appwrite session for new user
   try {
-    await account.create(ID.unique(), email, password);
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const foundUser = await User.findOne({ email }).exec();
+
+    if (!foundUser) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    const match = await bcrypt.compare(password, foundUser.password);
+
+    if (!match)
+      return res.status(401).json({ message: "Invalid email or password" });
+
+    // Tokens
+    const accessToken = generateAccessToken({ id: foundUser._id });
+    const refreshToken = generateRefreshToken({ id: foundUser._id });
+
+    foundUser.refreshToken = refreshToken;
+
+    await foundUser.save();
+
+    // Set cookie
+    res.cookie("refresh_token", refreshToken, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "strict",
+      maxAge: 21 * 24 * 60 * 60 * 1000,
+    });
+
+    res.json({
+      success: true,
+      accessToken,
+      id: foundUser._id,
+      data: {
+        user: foundUser,
+      },
+    });
   } catch (err) {
-    console.log(err?.message);
+    res.status(500).json({ message: "Login failed" });
   }
-
-  const session = await account.createEmailPasswordSession(email, password);
-
-  foundUser.userId = session.$id;
-  await foundUser.save();
-
-  res.cookie("appwrite-session", session?.secret, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "strict",
-    maxAge: 86400000,
-    // secure: true,
-  });
-
-  res.json({ accessToken: session?.secret, id: foundUser._id });
 };
 
+// @route GET /auth/signup
+// @access Public
 const createNewUser = async (req, res) => {
-  const { account } = await createAdminClient();
-  const { email, password } = req.body;
+  try {
+    const { email, password, username } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
+    if (!email || !password || !username) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
-  // Check for duplicate email
-  const duplicate = await User.findOne({ email })
-    .collation({ locale: "en", strength: 2 })
-    .lean()
-    .exec();
+    const duplicate = await User.findOne({ email })
+      .collation({ locale: "en", strength: 2 })
+      .lean()
+      .exec();
 
-  if (duplicate) {
-    return res.status(409).json({ message: "Duplicate email" });
-  }
+    if (duplicate) {
+      return res.status(409).json({ message: "Email already registered" });
+    }
 
-  const newUserAccount = await account.create(ID.unique(), email, password);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  if (!newUserAccount) throw new Error("Error creating user");
+    await User.create({
+      email,
+      password: hashedPassword,
+      username,
+    });
 
-  // Create and store new user
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const userObject = {
-    email,
-    password: hashedPassword,
-    userId: newUserAccount.$id,
-  };
-
-  const user = await User.create(userObject);
-
-  // Create a appwrite session for new user
-  const session = await account.createEmailPasswordSession(email, password);
-
-  res.cookie("appwrite-session", session.secret, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "strict",
-    maxAge: 86400000,
-    // secure: true,
-  });
-
-  if (user) {
-    return res.json({
-      accessToken: session.secret,
-      id: user._id,
+    res.json({
+      success: true,
       message: `New user ${email} created`,
     });
-  } else {
-    return res.status(400).json({ message: "Invalid user data received" });
+  } catch (err) {
+    res.status(500).json({ message: "Registration failed" });
   }
 };
 
 const googleAuthFailed = async (req, res) => {
-  return res.redirect(`${process.env.FRONTEND_URL}/login?error=session_failed`)
+  return res.redirect(`${process.env.FRONTEND_URL}/login?error=session_failed`);
 };
+
+const oauth2Client = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
 
 // @route GET /auth/google
 // @access Public
+// Initiate Google OAuth2 flow
 const googleAuth = async (req, res) => {
   try {
-    const { account } = await createAdminClient();
-
-    const redirectUrl = await account.createOAuth2Token(
-      OAuthProvider.Google,
-      `${process.env.BACKEND_URL}/auth/google/callback`,
-      `${process.env.BACKEND_URL}/auth/failed?error=google_failed`
-    );
+    const redirectUrl = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      prompt: "consent",
+      scope: ["profile", "email"],
+    });
 
     return res.redirect(redirectUrl);
   } catch (err) {
@@ -130,56 +125,89 @@ const googleAuth = async (req, res) => {
 
 // @route GET /auth/google/callback
 // @access Public
+// Handle Google OAuth2 callback
 const googleCallback = async (req, res) => {
   try {
-    const { userId, secret } = req.query;
+    const code = req.query.code;
 
-    const { account } = await createAdminClient(req, res);
+    // 1. Exchange code for tokens
+    const { tokens } = await oauth2Client.getToken(code);
 
-    const session = await account.createSession(userId, secret);
+    // 2. Decode user's Google profile
+    const googleUser = jwt.decode(tokens.id_token);
 
-    req.cookies["appwrite-session"] = session.secret;
+    const email = googleUser.email;
+    const username = googleUser.name;
+    const picture = googleUser.picture;
 
-    // Get Appwrite user info
-    const { account: userSessionAccount } = await createSessionClient(req, res);
-
-    const appwriteUser = await userSessionAccount.get();
-
-    const email = appwriteUser.email;
-
-    const appwriteId = appwriteUser.$id;
-
-    // Check if Mongo user exists
-    let user = await User.findOne({ email }).exec();
+    // 3. Check if user exists in Mongo
+    let user = await User.findOne({ email });
 
     if (!user) {
-      // Create a new DB user if not found
       user = await User.create({
         email,
-        password: null, // Google login has no password
-        userId: appwriteId,
+        password: null,
+        googleId: googleUser.sub,
+        username,
+        avatar: picture,
       });
     } else {
-      // Ensure Appwrite ID is linked
-      user.userId = appwriteId;
+      user.googleId = googleUser.sub;
       await user.save();
     }
 
-    res.cookie("appwrite-session", session.secret, {
+    const accessToken = generateAccessToken({ id: user._id });
+    const refreshToken = generateRefreshToken({ id: user._id });
+
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.cookie("refresh_token", refreshToken, {
       path: "/",
       httpOnly: true,
       sameSite: "strict",
-      maxAge: 86400000,
-      // secure: true,
+      maxAge: 21 * 24 * 60 * 60 * 1000
     });
 
     return res.redirect(
-      `${process.env.FRONTEND_URL}/success?accessToken=${session.secret}&id=${user._id}`
+      `${process.env.FRONTEND_URL}/success?accessToken=${accessToken}&id=${user._id}`
     );
   } catch (err) {
     return res.redirect(
       `${process.env.FRONTEND_URL}/login?error=session_failed`
     );
+  }
+};
+
+const refreshToken = async (req, res) => {
+  const token = req.cookies.refresh_token;
+
+  if (!token) return res.status(401).json({ message: "No refresh token" });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.id);
+
+    if (!user || user.refreshToken !== token)
+      return res.status(401).json({ message: "Invalid refresh token" });
+
+    const newAccessToken = generateAccessToken({ id: user._id });
+    const newRefreshToken = generateRefreshToken({ id: user._id });
+
+    user.refreshToken = newRefreshToken;
+    await user.save();
+
+    res.cookie("refresh_token", newRefreshToken, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "strict",
+      maxAge: 21 * 24 * 60 * 60 * 1000,
+    });
+
+    res.json({ accessToken: newAccessToken });
+  } catch (err) {
+    res.status(401).json({ message: "Token expired" });
   }
 };
 
@@ -224,21 +252,15 @@ const resetPassword = async (req, res) => {
 // @route POST /auth/logout
 // @access Public - just to clear cookie if exists
 const logout = async (req, res) => {
-  const { account } = await createAdminClient();
+  res.clearCookie("refresh_token");
 
-  res.clearCookie("appwrite-session", {
-    httpOnly: true,
-    sameSite: "Lax",
-    secure: true,
-  });
-
-  await account.deleteSession("current");
-  res.json({ message: "Logged out successfully!" });
+  res.json({ success: true, message: "Logged out successfully!" });
 };
 
 module.exports = {
   createNewUser,
   login,
+  refreshToken,
   googleAuth,
   googleCallback,
   googleAuthFailed,
