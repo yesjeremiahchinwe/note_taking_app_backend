@@ -1,16 +1,20 @@
 const allowedOrigins = require("./allowedOrigins");
 
 const corsOptions = {
-    origin: (origin, callback) => {
-        if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-            callback(null, true)
-        } else {
-            callback(new Error("Not authllowed by cors!"))
-        }
-    },
+  origin: (origin, callback) => {
+    // Allow requests with no origin (Google OAuth, Postman, server-to-server)
+    if (!origin) {
+      return callback(null, true);
+    }
 
-    credentials: true,
-    optionsSuccessStatus: 200
-}
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS!"));
+  },
+
+  credentials: true,
+};
 
 module.exports = corsOptions
