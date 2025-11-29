@@ -14,6 +14,9 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
     },
+    username: {
+        type: String,
+    },
     authType: {
         type: String,
         default: 'email/password'

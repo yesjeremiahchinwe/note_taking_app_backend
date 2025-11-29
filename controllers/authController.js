@@ -1,11 +1,14 @@
 const bcrypt = require("bcrypt");
 const nodeappwrite = require("node-appwrite");
 const User = require("../models/UserModel");
+const fs = require("fs");
 const {
   createAdminClient,
   createSessionClient,
 } = require("../config/appwrite");
+const EmailNotificationService = require("../utilities/email_sender/EmailNotificationService");
 const { ID, OAuthProvider } = nodeappwrite;
+const { google } = require("googleapis");
 
 // @desc Login
 // @route POST /auth
@@ -46,14 +49,20 @@ const login = async (req, res) => {
     // secure: true,
   });
 
-  res.json({ accessToken: session?.secret, id: foundUser._id });
+  res.json({
+    accessToken: session?.secret,
+    id: foundUser._id,
+    message: "Login successful",
+    username: foundUser.username,
+  });
 };
 
 const createNewUser = async (req, res) => {
   const { account } = await createAdminClient();
-  const { email, password } = req.body;
 
-  if (!email || !password) {
+  const { email, password, username } = req.body;
+
+  if (!email || !password || !username) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
@@ -64,48 +73,66 @@ const createNewUser = async (req, res) => {
     .exec();
 
   if (duplicate) {
-    return res.status(409).json({ message: "Duplicate email" });
+    return res.status(409).json({ message: "User already exist" });
   }
 
-  const newUserAccount = await account.create(ID.unique(), email, password);
+  try {
+    const newUserAccount = await account.create(
+      ID.unique(),
+      email,
+      password,
+      username
+    );
 
-  if (!newUserAccount) throw new Error("Error creating user");
+    // Create a appwrite session for new user
+    const session = await account.createEmailPasswordSession(email, password);
 
-  // Create and store new user
-  const hashedPassword = await bcrypt.hash(password, 10);
+    // Create and store new user
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  const userObject = {
-    email,
-    password: hashedPassword,
-    userId: newUserAccount.$id,
-  };
+    const userObject = {
+      email,
+      password: hashedPassword,
+      userId: newUserAccount.$id,
+      username,
+    };
 
-  const user = await User.create(userObject);
+    const user = await User.create(userObject);
 
-  // Create a appwrite session for new user
-  const session = await account.createEmailPasswordSession(email, password);
+    const userUsername =
+      username?.split(" ")[0] || username || email.split("@")[0];
 
-  res.cookie("appwrite-session", session.secret, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "strict",
-    maxAge: 86400000,
-    // secure: true,
-  });
+    // Send welcome email
+    await new EmailNotificationService().registrationEmail(user?.email, userUsername);
 
-  if (user) {
+    res.cookie("appwrite-session", session.secret, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "strict",
+      maxAge: 86400000,
+      // secure: true,
+    });
+
     return res.json({
       accessToken: session.secret,
-      id: user._id,
+      id: newUserAccount.$id,
       message: `New user ${email} created`,
     });
-  } else {
-    return res.status(400).json({ message: "Invalid user data received" });
+  } catch (err) {
+    console.log("Error creating user:", err?.message);
+    return res.status(400).json({ message: err?.message || "User already exist" });
   }
+
+  // try {
+
+  // } catch (err) {
+  //   return res.status(500).json({ message: err?.message || "Server Error" });
+  // }
 };
 
+/* ---------------- Google OAuth ------------- */
 const googleAuthFailed = async (req, res) => {
-  return res.redirect(`${process.env.FRONTEND_URL}/login?error=session_failed`)
+  return res.redirect(`${process.env.FRONTEND_URL}/login?error=session_failed`);
 };
 
 // @route GET /auth/google
@@ -149,6 +176,8 @@ const googleCallback = async (req, res) => {
 
     const appwriteId = appwriteUser.$id;
 
+    const username = appwriteUser.name || email.split("@")[0];
+
     // Check if Mongo user exists
     let user = await User.findOne({ email }).exec();
 
@@ -158,7 +187,17 @@ const googleCallback = async (req, res) => {
         email,
         password: null, // Google login has no password
         userId: appwriteId,
+        username,
+        authType: "google",
       });
+
+      const userUsername = user?.username?.split(" ")[0] || user?.username;
+
+      // Send welcome email
+      await new EmailNotificationService().registrationEmail(
+        user?.email,
+        userUsername
+      );
     } else {
       // Ensure Appwrite ID is linked
       user.userId = appwriteId;
