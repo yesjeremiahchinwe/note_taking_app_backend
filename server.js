@@ -15,6 +15,9 @@ const PORT = process.env.PORT || 3500;
 connectDB();
 app.use(logger);
 
+// FIX for Render load balancer + rate-limit
+app.set("trust proxy", 1);
+
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
