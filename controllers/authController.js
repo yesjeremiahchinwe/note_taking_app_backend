@@ -103,7 +103,11 @@ const createNewUser = async (req, res) => {
       username?.split(" ")[0] || username || email.split("@")[0];
 
     // Send welcome email
-    await new EmailNotificationService().registrationEmail(user?.email, userUsername);
+    try {
+      await new EmailNotificationService().registrationEmail(user?.email, userUsername);
+    } catch (err) {
+      console.log("Error sending email:", err?.message);
+    }
 
     res.cookie("appwrite-session", session.secret, {
       path: "/",
