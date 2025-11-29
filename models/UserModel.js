@@ -1,4 +1,3 @@
-const { Avatars } = require("appwrite");
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
