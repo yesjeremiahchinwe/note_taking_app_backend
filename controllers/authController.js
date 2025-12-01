@@ -134,8 +134,12 @@ const googleCallback = async (req, res) => {
     // 1. Exchange code for tokens
     const { tokens } = await oauth2Client.getToken(code);
 
+    console.log("Tokens received:", tokens);
+
     // 2. Decode user's Google profile
     const googleUser = jwt.decode(tokens.id_token);
+
+    console.log("Google user profile:", googleUser);
 
     const email = googleUser.email;
     const username = googleUser.name;
@@ -143,6 +147,8 @@ const googleCallback = async (req, res) => {
 
     // 3. Check if user exists in Mongo
     let user = await User.findOne({ email });
+
+    console.log("User found in DB:", user);
 
     if (!user) {
       user = await User.create({
@@ -160,8 +166,12 @@ const googleCallback = async (req, res) => {
     const accessToken = generateAccessToken({ id: user._id });
     const refreshToken = generateRefreshToken({ id: user._id });
 
+    console.log("Generated tokens:", { accessToken, refreshToken });
+
     user.refreshToken = refreshToken;
     await user.save();
+
+    console.log("User after saving refresh token:", user);
 
     res.cookie("refresh_token", refreshToken, {
       path: "/",
