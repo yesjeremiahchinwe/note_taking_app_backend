@@ -131,10 +131,12 @@ const googleCallback = async (req, res) => {
   try {
     const code = req.query.code;
 
+    console.log("AUTH CODE:", code);
+
     // 1. Exchange code for tokens
     const { tokens } = await oauth2Client.getToken(code);
 
-    console.log("Tokens received:", tokens);
+    console.log("TOKENS RECEIVED:", tokens);
 
     // 2. Decode user's Google profile
     const googleUser = jwt.decode(tokens.id_token);
@@ -177,13 +179,16 @@ const googleCallback = async (req, res) => {
       path: "/",
       httpOnly: true,
       sameSite: "strict",
-      maxAge: 21 * 24 * 60 * 60 * 1000
+      maxAge: 21 * 24 * 60 * 60 * 1000,
     });
 
     return res.redirect(
       `${process.env.FRONTEND_URL}/success?accessToken=${accessToken}&id=${user._id}`
     );
   } catch (err) {
+    console.log("GOOGLE CALLBACK ERROR:", err.message);
+    console.log(err.response?.data || err);
+
     return res.redirect(
       `${process.env.FRONTEND_URL}/login?error=session_failed`
     );
