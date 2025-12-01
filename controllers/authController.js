@@ -1,11 +1,13 @@
 const bcrypt = require("bcrypt");
 const User = require("../models/UserModel");
+const EmailNotificationService = require("../utilities/email_sender/EmailNotificationService");
 const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const {
   generateAccessToken,
   generateRefreshToken,
 } = require("../utilities/tokenGenerators");
+const { logEvents } = require("../middleware/logger");
 
 // @desc Login
 // @route POST /auth
@@ -79,11 +81,24 @@ const createNewUser = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await User.create({
+    const user = await User.create({
       email,
       password: hashedPassword,
       username,
     });
+
+    try {
+      const userUsername =
+        username?.split(" ")[0] || username || email.split("@")[0];
+
+      // Send welcome email
+      await new EmailNotificationService().registrationEmail(
+        user?.email,
+        userUsername
+      );
+    } catch (err) {
+      logEvents(`Email not sent: ${err.message}`, "emailErrLog.log");
+    }
 
     res.json({
       success: true,
@@ -151,6 +166,19 @@ const googleCallback = async (req, res) => {
         username,
         avatar: picture,
       });
+
+      try {
+        const userUsername =
+          username?.split(" ")[0] || username || email.split("@")[0];
+
+        // Send welcome email
+        await new EmailNotificationService().registrationEmail(
+          user?.email,
+          userUsername
+        );
+      } catch (err) {
+        logEvents(`Email not sent: ${err.message}`, "emailErrLog.log");
+      }
     } else {
       user.googleId = googleUser.sub;
       await user.save();
