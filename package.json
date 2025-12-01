@@ -26,6 +26,7 @@
     "express-async-errors": "^3.1.1",
     "express-rate-limit": "^7.1.5",
     "google-auth-library": "^10.5.0",
+    "googleapis": "^166.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.1.0",
     "mongoose-sequence": "^6.0.0",
