@@ -127,21 +127,14 @@ const googleAuth = async (req, res) => {
 // @access Public
 // Handle Google OAuth2 callback
 const googleCallback = async (req, res) => {
-  console.log("Google callback called");
   try {
     const code = req.query.code;
-
-    console.log("AUTH CODE:", code);
 
     // 1. Exchange code for tokens
     const { tokens } = await oauth2Client.getToken(code);
 
-    console.log("TOKENS RECEIVED:", tokens);
-
     // 2. Decode user's Google profile
     const googleUser = jwt.decode(tokens.id_token);
-
-    console.log("Google user profile:", googleUser);
 
     const email = googleUser.email;
     const username = googleUser.name;
@@ -149,8 +142,6 @@ const googleCallback = async (req, res) => {
 
     // 3. Check if user exists in Mongo
     let user = await User.findOne({ email });
-
-    console.log("User found in DB:", user);
 
     if (!user) {
       user = await User.create({
@@ -168,12 +159,8 @@ const googleCallback = async (req, res) => {
     const accessToken = generateAccessToken({ id: user._id });
     const refreshToken = generateRefreshToken({ id: user._id });
 
-    console.log("Generated tokens:", { accessToken, refreshToken });
-
     user.refreshToken = refreshToken;
     await user.save();
-
-    console.log("User after saving refresh token:", user);
 
     res.cookie("refresh_token", refreshToken, {
       path: "/",
@@ -186,9 +173,6 @@ const googleCallback = async (req, res) => {
       `${process.env.FRONTEND_URL}/success?accessToken=${accessToken}&id=${user._id}`
     );
   } catch (err) {
-    console.log("GOOGLE CALLBACK ERROR:", err.message);
-    console.log(err.response?.data || err);
-
     return res.redirect(
       `${process.env.FRONTEND_URL}/login?error=session_failed`
     );
