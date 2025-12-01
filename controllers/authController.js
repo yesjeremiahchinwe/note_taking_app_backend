@@ -127,6 +127,7 @@ const googleAuth = async (req, res) => {
 // @access Public
 // Handle Google OAuth2 callback
 const googleCallback = async (req, res) => {
+  console.log("Google callback called");
   try {
     const code = req.query.code;
 
