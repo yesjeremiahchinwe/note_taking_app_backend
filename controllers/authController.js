@@ -87,18 +87,14 @@ const createNewUser = async (req, res) => {
       username,
     });
 
-    try {
-      const userUsername =
-        username?.split(" ")[0] || username || email.split("@")[0];
+    const userUsername =
+      username?.split(" ")[0] || username || email.split("@")[0];
 
-      // Send welcome email
-      await new EmailNotificationService().registrationEmail(
-        user?.email,
-        userUsername
+    new EmailNotificationService()
+      .registrationEmail(user?.email, userUsername)
+      .catch((err) =>
+        logEvents(`Email not sent: ${err.message}`, "emailErrLog.log")
       );
-    } catch (err) {
-      logEvents(`Email not sent: ${err.message}`, "emailErrLog.log");
-    }
 
     res.json({
       success: true,
@@ -167,18 +163,14 @@ const googleCallback = async (req, res) => {
         avatar: picture,
       });
 
-      try {
-        const userUsername =
-          username?.split(" ")[0] || username || email.split("@")[0];
+      const userUsername =
+        username?.split(" ")[0] || username || email.split("@")[0];
 
-        // Send welcome email
-        await new EmailNotificationService().registrationEmail(
-          user?.email,
-          userUsername
+      new EmailNotificationService()
+        .registrationEmail(user?.email, userUsername)
+        .catch((err) =>
+          logEvents(`Email not sent: ${err.message}`, "emailErrLog.log")
         );
-      } catch (err) {
-        logEvents(`Email not sent: ${err.message}`, "emailErrLog.log");
-      }
     } else {
       user.googleId = googleUser.sub;
       await user.save();
