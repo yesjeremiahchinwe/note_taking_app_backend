@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const helmet = require("helmet")
 const path = require("path");
 const mongoose = require("mongoose");
 const connectDB = require("./config/dbConnect");
@@ -17,7 +18,7 @@ app.use(logger);
 
 // FIX for Render load balancer + rate-limit
 app.set("trust proxy", 1);
-
+app.use(helmet())
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
@@ -30,6 +31,8 @@ app.use("/auth", require("./routes/authRoutes"));
 app.use("/users", require("./routes/userRoutes"));
 
 app.use("/notes", require("./routes/noteRoutes"));
+
+app.use("/ai", require("./routes/aiRoutes"));
 
 app.use("*", require("./routes/all"));
 
